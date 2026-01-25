@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading Tips - Blog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #6c757d;
+            font-size: 1.1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 2rem;
+        }
+
+        .post {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .post-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+        }
+
+        .post-title:hover {
+            color: #3498db;
+        }
+
+        .post-date {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-content {
+            line-height: 1.8;
+        }
+
+        .post-content h1, .post-content h2, .post-content h3 {
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+
+        .post-content p {
+            margin-bottom: 1rem;
+        }
+
+        .post-content code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+
+        .post-content pre {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6c757d;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e9ecef;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Loading Tips</h1>
+            <p class="subtitle">Performance insights and development tips</p>
+        </header>
+
+        <div id="loading" class="loading">
+            Loading posts...
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="posts"></div>
+
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <h3>No posts found</h3>
+            <p>Posts will appear here once they're added to the repository.</p>
+        </div>
+
+        <footer>
+            <p>Powered by GitHub Pages • <a href="https://github.com">View on GitHub</a></p>
+        </footer>
+    </div>
+
+    <script>
+        class BlogLoader {
+            constructor() {
+                // Configuration - modify these for your repository
+                this.owner = 'your-username'; // Replace with your GitHub username
+                this.repo = 'loading-tips';   // Replace with your repository name
+                this.postsPath = 'posts';     // Path to posts directory
+                
+                this.loadingEl = document.getElementById('loading');
+                this.errorEl = document.getElementById('error');
+                this.postsEl = document.getElementById('posts');
+                this.emptyStateEl = document.getElementById('empty-state');
+            }
+
+            async init() {
+                try {
+                    this.showLoading();
+                    const posts = await this.fetchPosts();
+                    this.renderPosts(posts);
+                } catch (error) {
+                    this.showError(error.message);
+                    console.error('Error loading posts:', error);
+                }
+            }
+
+            showLoading() {
+                this.loadingEl.style.display = 'block';
+                this.errorEl.style.display = 'none';
+                this.emptyStateEl.style.display = 'none';
+            }
+
+            showError(message) {
+                this.loadingEl.style.display = 'none';
+                this.errorEl.style.display = 'block';
+                this.errorEl.textContent = message;
+            }
+
+            showEmptyState() {
+                this.loadingEl.style.display = 'none';
+                this.emptyStateEl.style.display = 'block';
+            }
+
+            async fetchPosts() {
+                // SECURITY: Using only public GitHub API endpoints
+                // No authentication tokens or secrets required
+                const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${this.postsPath}`;
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/vnd.github.v3+json',
+                        // No Authorization header - public access only
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error(`Repository or posts directory not found. Check that ${this.owner}/${this.repo} exists and has a ${this.postsPath} folder.`);
+                    }
+                    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+                }
+
+                const files = await response.json();
+                
+                // Filter for markdown and JSON files
+                const postFiles = files.filter(file => 
+                    file.type === 'file' && 
+                    (file.name.endsWith('.md') || file.name.endsWith('.json'))
+                );
+
+                if (postFiles.length === 0) {
+                    return [];
+                }
+
+                // Fetch content for each post file
+                const posts = await Promise.all(
+                    postFiles.map(file => this.fetchPostContent(file))
+                );
+
+                // Filter out failed fetches and sort by date (newest first)
+                return posts
+                    .filter(post => post !== null)
+                    .sort((a, b) => new Date(b.date) - new Date(a.date));
+            }
+
+            async fetchPostContent(file) {
+                try {
+                    const response = await fetch(file.download_url);
+                    if (!response.ok) return null;
+
+                    const content = await response.text();
+                    
+                    if (file.name.endsWith('.json')) {
+                        return this.parseJsonPost(content, file.name);
+                    } else {
+                        return this.parseMarkdownPost(content, file.name);
+                    }
+                } catch (error) {
+                    console.warn(`Failed to fetch ${file.name}:`, error);
+                    return null;
+                }
+            }
+
+            parseJsonPost(content, filename) {
+                try {
+                    const post = JSON.parse(content);
+                    return {
+                        title: post.title || 'Untitled',
+                        date: post.date || this.extractDateFromFilename(filename),
+                        content: post.content || '',
+                        filename
+                    };
+                } catch (error) {
+                    console.warn(`Invalid JSON in ${filename}:`, error);
+                    return null;
+                }
+            }
+
+            parseMarkdownPost(content, filename) {
+                // Simple frontmatter parsing
+                const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
+                const match = content.match(frontmatterRegex);
+                
+                let title = 'Untitled';
+                let date = this.extractDateFromFilename(filename);
+                let postContent = content;
+
+                if (match) {
+                    const frontmatter = match[1];
+                    postContent = match[2];
+                    
+                    // Extract title and date from frontmatter
+                    const titleMatch = frontmatter.match(/^title:\s*(.+)$/m);
+                    const dateMatch = frontmatter.match(/^date:\s*(.+)$/m);
+                    
+                    if (titleMatch) title = titleMatch[1].trim().replace(/['"]/g, '');
+                    if (dateMatch) date = dateMatch[1].trim();
+                }
+
+                return {
+                    title,
+                    date,
+                    content: this.markdownToHtml(postContent),
+                    filename
+                };
+            }
+
+            extractDateFromFilename(filename) {
+                // Try to extract date from filename like "2024-01-15-post-title.md"
+                const dateMatch = filename.match(/^(\d{4}-\d{2}-\d{2})/);
+                return dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0];
+            }
+
+            markdownToHtml(markdown) {
+                // Basic markdown parsing - you could use a library like marked.js for full support
+                return markdown
+                    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+                    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                    .replace(/`(.+?)`/g, '<code>$1</code>')
+                    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/^(.+)$/, '<p>$1</p>')
+                    .replace(/<p><\/p>/g, '');
+            }
+
+            renderPosts(posts) {
+                this.loadingEl.style.display = 'none';
+                
+                if (posts.length === 0) {
+                    this.showEmptyState();
+                    return;
+                }
+
+                this.postsEl.innerHTML = posts.map(post => `
+                    <article class="post">
+                        <h2 class="post-title">${this.escapeHtml(post.title)}</h2>
+                        <div class="post-date">${this.formatDate(post.date)}</div>
+                        <div class="post-content">${post.content}</div>
+                    </article>
+                `).join('');
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            formatDate(dateString) {
+                try {
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                } catch (error) {
+                    return dateString;
+                }
+            }
+        }
+
+        // Initialize the blog when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const blog = new BlogLoader();
+            blog.init();
+        });
+    </script>
+</body>
+</html>
