@@ -149,15 +149,24 @@
         }
 
         .post-list li {
-            padding: 0.5rem;
+            padding: 0.75rem;
             border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s, border-left 0.2s;
+            border-left: 3px solid transparent;
         }
 
         .post-list li:hover {
-            background: #f8f9fa;
+            background: #f0f4f8;
+        }
+
+        .post-list li.selected {
+            background: #e3f2fd;
+            border-left-color: #007bff;
+        }
+
+        .post-title-text {
+            font-weight: 500;
         }
 
         .post-meta {
@@ -550,16 +559,25 @@
                 }
 
                 this.postsList.innerHTML = this.posts.map(post => `
-                    <li>
+                    <li class="post-item" data-filename="${post.filename}" onclick="admin.editPost('${post.filename}')">
                         <div>
-                            <div>${this.escapeHtml(post.title)}</div>
+                            <div class="post-title-text">${this.escapeHtml(post.title)}</div>
                             <div class="post-meta">${post.date}</div>
                         </div>
-                        <button class="btn btn-sm" onclick="admin.editPost('${post.filename}')">
-                            Edit
-                        </button>
                     </li>
                 `).join('');
+            }
+
+            highlightSelectedPost(filename) {
+                // Remove highlight from all posts
+                document.querySelectorAll('.post-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                // Add highlight to selected post
+                if (filename) {
+                    const selectedItem = document.querySelector(`.post-item[data-filename="${filename}"]`);
+                    if (selectedItem) selectedItem.classList.add('selected');
+                }
             }
 
             createNewPost() {
@@ -586,6 +604,7 @@
                 this.postContent.value = post.bodyContent;
                 
                 this.showEditor();
+                this.highlightSelectedPost(filename);
             }
 
             async savePost() {
@@ -733,6 +752,7 @@ ${content}`;
                 this.currentPost = null;
                 this.isNewPost = false;
                 this.clearMessages();
+                this.highlightSelectedPost(null); // Clear selection
             }
 
             showLogin() {
