@@ -578,6 +578,7 @@
                 this.showEditor();
             }
 
+            // FIXED: Save post - now correctly passes SHA for updates
             async savePost() {
                 const title = this.postTitle.value.trim();
                 const date = this.postDate.value;
@@ -595,7 +596,9 @@
                     
                     const markdownContent = this.buildMarkdownContent(title, date, content);
                     
-                    await this.commitFile(filename, markdownContent);
+                    // CRITICAL FIX: Pass SHA for updates, null for new posts
+                    const sha = this.isNewPost ? null : this.currentPost.sha;
+                    await this.commitFile(filename, markdownContent, sha);
                     
                     this.showMessage('success', 'Post saved successfully!');
                     await this.loadPosts();
@@ -607,6 +610,7 @@
                 }
             }
 
+            // FIXED: Delete post - now uses DELETE HTTP method
             async deletePost() {
                 if (this.isNewPost || !this.currentPost) return;
                 
@@ -615,7 +619,7 @@
                 }
                 
                 try {
-                    await this.commitFile(this.currentPost.filename, null, this.currentPost.sha);
+                    await this.deleteFile(this.currentPost.filename, this.currentPost.sha);
                     
                     this.showMessage('success', 'Post deleted successfully!');
                     await this.loadPosts();
@@ -627,24 +631,23 @@
                 }
             }
 
+            // Method for creating/updating files - uses PUT method
             async commitFile(filename, content, sha = null) {
                 const path = `${this.postsPath}/${filename}`;
-                const message = content 
-                    ? `${this.isNewPost ? 'Add' : 'Update'} post: ${this.postTitle.value}`
-                    : `Delete post: ${this.currentPost.title}`;
+                const message = sha 
+                    ? `Update post: ${this.postTitle.value}`
+                    : `Add post: ${this.postTitle.value}`;
                 
                 const requestBody = {
                     message: message,
+                    content: btoa(unescape(encodeURIComponent(content))),
                     committer: {
                         name: this.currentUser.name || this.currentUser.login,
                         email: this.currentUser.email || `${this.currentUser.login}@users.noreply.github.com`
                     }
                 };
                 
-                if (content) {
-                    requestBody.content = btoa(unescape(encodeURIComponent(content)));
-                }
-                
+                // Include SHA only for updates (existing files)
                 if (sha) {
                     requestBody.sha = sha;
                 }
@@ -653,6 +656,41 @@
                     `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`,
                     {
                         method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${this.accessToken}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                    }
+                );
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || `GitHub API error: ${response.status}`);
+                }
+            }
+
+            // Separate method for file deletion - uses DELETE HTTP method
+            async deleteFile(filename, sha) {
+                if (!sha) {
+                    throw new Error('SHA is required for file deletion');
+                }
+                
+                const path = `${this.postsPath}/${filename}`;
+                const requestBody = {
+                    message: `Delete post: ${this.currentPost.title}`,
+                    sha: sha,
+                    committer: {
+                        name: this.currentUser.name || this.currentUser.login,
+                        email: this.currentUser.email || `${this.currentUser.login}@users.noreply.github.com`
+                    }
+                };
+                
+                const response = await fetch(
+                    `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`,
+                    {
+                        method: 'DELETE',  // Use DELETE method for file deletion
                         headers: {
                             'Authorization': `token ${this.accessToken}`,
                             'Accept': 'application/vnd.github.v3+json',
