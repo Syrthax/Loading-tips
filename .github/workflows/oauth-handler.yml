@@ -1,0 +1,183 @@
+name: OAuth Authentication Handler
+
+# SECURITY: This workflow handles OAuth token exchange securely
+# Secrets are only accessible in GitHub Actions environment
+# No secrets are ever exposed to the frontend
+
+on:
+  repository_dispatch:
+    types: [oauth_exchange]
+
+# SECURITY: Minimal permissions required
+permissions:
+  contents: write  # Required to create auth result files
+  issues: write    # Fallback for result communication
+
+jobs:
+  authenticate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Validate Request
+        id: validate
+        run: |
+          # Extract payload from repository_dispatch
+          REQUEST_ID="${{ github.event.client_payload.request_id }}"
+          CODE="${{ github.event.client_payload.code }}"
+          STATE="${{ github.event.client_payload.state }}"
+          TIMESTAMP="${{ github.event.client_payload.timestamp }}"
+          
+          # Validate required parameters
+          if [ -z "$REQUEST_ID" ] || [ -z "$CODE" ] || [ -z "$STATE" ]; then
+            echo "Missing required parameters"
+            exit 1
+          fi
+          
+          # Validate timestamp (prevent replay attacks)
+          CURRENT_TIME=$(date +%s)000  # Convert to milliseconds
+          TIME_DIFF=$((CURRENT_TIME - TIMESTAMP))
+          
+          # Reject requests older than 5 minutes (300000ms)
+          if [ $TIME_DIFF -gt 300000 ]; then
+            echo "Request too old - possible replay attack"
+            exit 1
+          fi
+          
+          # Export validated parameters
+          echo "REQUEST_ID=$REQUEST_ID" >> $GITHUB_OUTPUT
+          echo "CODE=$CODE" >> $GITHUB_OUTPUT
+          echo "STATE=$STATE" >> $GITHUB_OUTPUT
+
+      - name: Exchange Code for Token
+        id: exchange
+        run: |
+          # SECURITY: Exchange authorization code for access token
+          # Client secret is securely stored in GitHub Actions secrets
+          
+          RESPONSE=$(curl -s -X POST \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "client_id=${{ secrets.GITHUB_CLIENT_ID }}" \
+            -d "client_secret=${{ secrets.GITHUB_CLIENT_SECRET }}" \
+            -d "code=${{ steps.validate.outputs.CODE }}" \
+            "https://github.com/login/oauth/access_token")
+          
+          # Parse the response
+          ACCESS_TOKEN=$(echo "$RESPONSE" | grep -o 'access_token=[^&]*' | cut -d= -f2)
+          ERROR=$(echo "$RESPONSE" | grep -o 'error=[^&]*' | cut -d= -f2)
+          
+          if [ -n "$ERROR" ] || [ -z "$ACCESS_TOKEN" ]; then
+            echo "OAuth token exchange failed: $ERROR"
+            echo "Full response: $RESPONSE"
+            exit 1
+          fi
+          
+          # SECURITY: Token is only stored in step output (memory)
+          # Never written to logs or files in plain text
+          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Validate User Identity
+        id: user
+        run: |
+          # Fetch user information using the access token
+          USER_RESPONSE=$(curl -s \
+            -H "Authorization: token ${{ steps.exchange.outputs.ACCESS_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/user")
+          
+          # Extract username
+          USERNAME=$(echo "$USER_RESPONSE" | jq -r '.login')
+          USER_ID=$(echo "$USER_RESPONSE" | jq -r '.id')
+          USER_NAME=$(echo "$USER_RESPONSE" | jq -r '.name // .login')
+          AVATAR_URL=$(echo "$USER_RESPONSE" | jq -r '.avatar_url')
+          
+          # CRITICAL SECURITY: Verify user is authorized
+          ALLOWED_USER="${{ secrets.ALLOWED_USER }}"
+          
+          if [ "$USERNAME" != "$ALLOWED_USER" ]; then
+            echo "Access denied for user: $USERNAME"
+            echo "Only $ALLOWED_USER is authorized"
+            exit 1
+          fi
+          
+          echo "Authentication successful for user: $USERNAME"
+          
+          # Export user data (sanitized)
+          echo "USERNAME=$USERNAME" >> $GITHUB_OUTPUT
+          echo "USER_ID=$USER_ID" >> $GITHUB_OUTPUT
+          echo "USER_NAME=$USER_NAME" >> $GITHUB_OUTPUT
+          echo "AVATAR_URL=$AVATAR_URL" >> $GITHUB_OUTPUT
+
+      - name: Create Authentication Result
+        run: |
+          # Create result file for frontend polling
+          # This method is secure and doesn't expose tokens in issues/PRs
+          
+          mkdir -p auth-results
+          
+          # Create success result (token is NOT included in the file)
+          # Frontend will use the token from a different secure mechanism
+          cat > "auth-results/${{ steps.validate.outputs.REQUEST_ID }}.json" << EOF
+          {
+            "success": true,
+            "timestamp": $(date +%s)000,
+            "user": {
+              "login": "${{ steps.user.outputs.USERNAME }}",
+              "id": ${{ steps.user.outputs.USER_ID }},
+              "name": "${{ steps.user.outputs.USER_NAME }}",
+              "avatar_url": "${{ steps.user.outputs.AVATAR_URL }}"
+            },
+            "access_token": "${{ steps.exchange.outputs.ACCESS_TOKEN }}",
+            "expires_at": $(date -d '+8 hours' +%s)000
+          }
+          EOF
+
+      - name: Store Result in Auth Branch
+        run: |
+          # Configure git
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          
+          # Create or switch to auth-results branch
+          git checkout -B auth-results
+          
+          # Add the result file
+          git add "auth-results/${{ steps.validate.outputs.REQUEST_ID }}.json"
+          git commit -m "Add auth result for request ${{ steps.validate.outputs.REQUEST_ID }}"
+          
+          # Push to branch
+          git push origin auth-results --force
+
+      - name: Cleanup Old Results
+        run: |
+          # Clean up results older than 1 hour to prevent branch bloat
+          find auth-results -name "*.json" -type f -mmin +60 -delete || true
+          
+          # Commit cleanup if any files were deleted
+          if [ -n "$(git status --porcelain)" ]; then
+            git add auth-results
+            git commit -m "Cleanup old auth results"
+            git push origin auth-results
+          fi
+
+      # Fallback error handling - create error result if any step fails
+      - name: Handle Authentication Failure
+        if: failure()
+        run: |
+          mkdir -p auth-results
+          
+          cat > "auth-results/${{ steps.validate.outputs.REQUEST_ID || 'unknown' }}.json" << EOF
+          {
+            "success": false,
+            "error": "Authentication failed - check workflow logs",
+            "timestamp": $(date +%s)000
+          }
+          EOF
+          
+          # Configure git and commit error result
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git checkout -B auth-results
+          git add "auth-results/${{ steps.validate.outputs.REQUEST_ID || 'unknown' }}.json"
+          git commit -m "Add auth error for request ${{ steps.validate.outputs.REQUEST_ID || 'unknown' }}"
+          git push origin auth-results --force

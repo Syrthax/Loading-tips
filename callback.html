@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading Tips - OAuth Callback</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .callback-container {
+            max-width: 500px;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .loading {
+            color: #007bff;
+            margin: 1rem 0;
+        }
+
+        .success {
+            color: #28a745;
+            background: #d4edda;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 1rem auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="callback-container">
+        <h1>GitHub Authentication</h1>
+        
+        <div id="processing" class="loading">
+            <div class="spinner"></div>
+            <p>Processing authentication...</p>
+            <p style="font-size: 0.9em; color: #6c757d; margin-top: 0.5rem;">
+                This may take 15-30 seconds
+            </p>
+        </div>
+
+        <div id="success" class="success" style="display: none;">
+            <h3>✅ Authentication Successful!</h3>
+            <p>Redirecting to admin panel...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <h3>❌ Authentication Failed</h3>
+            <p id="error-message"></p>
+            <a href="admin.html" class="btn">Try Again</a>
+        </div>
+
+        <div id="manual-return" style="display: none; margin-top: 2rem;">
+            <p style="color: #6c757d; font-size: 0.9em;">
+                Taking longer than expected?
+            </p>
+            <a href="admin.html" class="btn">Return to Admin Panel</a>
+        </div>
+    </div>
+
+    <script>
+        class OAuthCallback {
+            constructor() {
+                // Repository configuration - must match admin.html
+                this.owner = 'Syrthax';  // Your GitHub username
+                this.repo = 'Loading-tips';  // Repository name
+                
+                // UI elements
+                this.processing = document.getElementById('processing');
+                this.success = document.getElementById('success');
+                this.error = document.getElementById('error');
+                this.errorMessage = document.getElementById('error-message');
+                this.manualReturn = document.getElementById('manual-return');
+                
+                this.init();
+            }
+
+            async init() {
+                // Show manual return option after 30 seconds
+                setTimeout(() => {
+                    if (this.processing.style.display !== 'none') {
+                        this.manualReturn.style.display = 'block';
+                    }
+                }, 30000);
+
+                try {
+                    await this.handleCallback();
+                } catch (error) {
+                    console.error('OAuth callback error:', error);
+                    this.showError(error.message);
+                }
+            }
+
+            async handleCallback() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get('code');
+                const state = urlParams.get('state');
+                const error = urlParams.get('error');
+                const errorDescription = urlParams.get('error_description');
+
+                // Handle OAuth errors
+                if (error) {
+                    throw new Error(`GitHub OAuth Error: ${error}${errorDescription ? ' - ' + errorDescription : ''}`);
+                }
+
+                // Validate required parameters
+                if (!code) {
+                    throw new Error('No authorization code received from GitHub');
+                }
+
+                if (!state) {
+                    throw new Error('Missing state parameter - possible CSRF attack');
+                }
+
+                // Verify state matches what we stored (CSRF protection)
+                const storedState = localStorage.getItem('oauth_state');
+                if (!storedState || state !== storedState) {
+                    // Clear potentially compromised state
+                    localStorage.removeItem('oauth_state');
+                    throw new Error('Invalid state parameter - possible CSRF attack');
+                }
+
+                // Generate unique request ID for this authentication attempt
+                const requestId = this.generateRequestId();
+                
+                // Store request ID for polling
+                localStorage.setItem('auth_request_id', requestId);
+                localStorage.setItem('auth_request_time', Date.now().toString());
+                
+                // Trigger GitHub Actions workflow
+                await this.triggerWorkflow(code, state, requestId);
+                
+                // Start polling for result
+                await this.pollForResult(requestId);
+            }
+
+            generateRequestId() {
+                // Generate cryptographically secure random ID
+                const array = new Uint8Array(16);
+                crypto.getRandomValues(array);
+                return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+            }
+
+            async triggerWorkflow(code, state, requestId) {
+                // SECURITY: This triggers a public API, but the workflow
+                // validates the request and handles secrets securely
+                const triggerUrl = `https://api.github.com/repos/${this.owner}/${this.repo}/dispatches`;
+                
+                const payload = {
+                    event_type: 'oauth_exchange',
+                    client_payload: {
+                        code: code,
+                        state: state,
+                        request_id: requestId,
+                        timestamp: Date.now(),
+                        // Additional context for workflow
+                        callback_url: window.location.origin + window.location.pathname
+                    }
+                };
+
+                const response = await fetch(triggerUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json',
+                        // No authentication required for repository_dispatch
+                        // The workflow will handle authentication validation
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`Failed to trigger authentication workflow: ${response.status} - ${errorData.message || response.statusText}`);
+                }
+            }
+
+            async pollForResult(requestId) {
+                const maxAttempts = 60; // 5 minutes with 5-second intervals
+                const pollInterval = 5000; // 5 seconds
+                
+                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    try {
+                        // Check for authentication result
+                        // The workflow will create a file in a special branch or use GitHub Issues
+                        const result = await this.checkAuthResult(requestId);
+                        
+                        if (result) {
+                            if (result.success) {
+                                await this.handleSuccess(result);
+                                return;
+                            } else {
+                                throw new Error(result.error || 'Authentication failed');
+                            }
+                        }
+                        
+                        // Wait before next poll
+                        if (attempt < maxAttempts - 1) {
+                            await new Promise(resolve => setTimeout(resolve, pollInterval));
+                        }
+                        
+                    } catch (error) {
+                        console.error(`Poll attempt ${attempt + 1} failed:`, error);
+                        
+                        // If this is the last attempt, show the error
+                        if (attempt === maxAttempts - 1) {
+                            throw error;
+                        }
+                        
+                        // Wait before retrying
+                        await new Promise(resolve => setTimeout(resolve, pollInterval));
+                    }
+                }
+
+                throw new Error('Authentication timeout - please try again');
+            }
+
+            async checkAuthResult(requestId) {
+                // Method 1: Check for result file in auth-results branch
+                try {
+                    const resultUrl = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/auth-results/${requestId}.json?ref=auth-results`;
+                    
+                    const response = await fetch(resultUrl, {
+                        headers: {
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const fileData = await response.json();
+                        const content = atob(fileData.content);
+                        return JSON.parse(content);
+                    }
+                    
+                    // If 404, result not ready yet
+                    if (response.status === 404) {
+                        return null;
+                    }
+                    
+                    throw new Error(`Unexpected response: ${response.status}`);
+                    
+                } catch (error) {
+                    // If branch doesn't exist yet, that's expected
+                    if (error.message.includes('404')) {
+                        return null;
+                    }
+                    throw error;
+                }
+            }
+
+            async handleSuccess(result) {
+                // Store authentication data
+                localStorage.setItem('github_token', result.access_token);
+                localStorage.setItem('github_user', JSON.stringify(result.user));
+                localStorage.setItem('auth_timestamp', Date.now().toString());
+                
+                // Clean up OAuth state
+                localStorage.removeItem('oauth_state');
+                localStorage.removeItem('auth_request_id');
+                localStorage.removeItem('auth_request_time');
+
+                // Show success message
+                this.showSuccess();
+                
+                // Redirect to admin panel after 2 seconds
+                setTimeout(() => {
+                    window.location.href = 'admin.html';
+                }, 2000);
+            }
+
+            showSuccess() {
+                this.processing.style.display = 'none';
+                this.error.style.display = 'none';
+                this.success.style.display = 'block';
+            }
+
+            showError(message) {
+                this.processing.style.display = 'none';
+                this.success.style.display = 'none';
+                this.error.style.display = 'block';
+                this.errorMessage.textContent = message;
+                
+                // Clean up stored state on error
+                localStorage.removeItem('oauth_state');
+                localStorage.removeItem('auth_request_id');
+                localStorage.removeItem('auth_request_time');
+            }
+        }
+
+        // Initialize callback handler
+        document.addEventListener('DOMContentLoaded', () => {
+            new OAuthCallback();
+        });
+    </script>
+</body>
+</html>

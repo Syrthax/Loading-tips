@@ -286,16 +286,16 @@
             constructor() {
                 // SECURITY: OAuth configuration
                 // Client ID is safe to expose in frontend code
-                this.clientId = 'your-github-oauth-app-client-id'; // Replace with your GitHub OAuth App Client ID
-                this.redirectUri = window.location.origin + window.location.pathname;
+                this.clientId = 'Ov23liVmZvZ8mD4KlGYe'; // Your GitHub OAuth App Client ID
+                this.redirectUri = window.location.origin + '/Loading-tips/callback.html';
                 
                 // Repository configuration
-                this.owner = 'your-username'; // Replace with your GitHub username
-                this.repo = 'loading-tips';   // Replace with your repository name
+                this.owner = 'Syrthax'; // Your GitHub username
+                this.repo = 'Loading-tips';   // Repository name (matches GitHub repo)
                 this.postsPath = 'posts';     // Path to posts directory
                 
                 // CRITICAL SECURITY: Only allow this specific GitHub username
-                this.allowedUser = 'your-username'; // Replace with YOUR GitHub username
+                this.allowedUser = 'Syrthax'; // Only this GitHub username can access admin
                 
                 // SECURITY: Access token stored only in memory
                 // Will be cleared on page refresh or logout
@@ -373,43 +373,29 @@
             }
 
             async exchangeCodeForToken(code) {
-                // SECURITY LIMITATION: In a real application, this token exchange
-                // MUST happen on a secure backend server to protect the client secret.
-                // This is a demonstration of the OAuth flow structure only.
-                
-                // For this learning project, you would need to:
-                // 1. Set up a simple backend endpoint (e.g., Vercel function, Netlify function)
-                // 2. Store client secret securely on the backend
-                // 3. Make the token exchange request from the backend
-                
-                throw new Error(`
-                    TOKEN EXCHANGE MUST BE IMPLEMENTED ON BACKEND.
-                    Client secret cannot be safely stored in frontend code.
-                    
-                    To complete this implementation:
-                    1. Create a backend endpoint for token exchange
-                    2. Store GitHub OAuth client secret securely on backend
-                    3. Make POST request to https://github.com/login/oauth/access_token
-                    4. Return token to frontend securely
-                    
-                    For now, you can manually create a Personal Access Token at:
-                    https://github.com/settings/tokens
-                    And store it in localStorage for testing.
-                `);
+                // This method is no longer used - OAuth exchange happens in GitHub Actions
+                // The callback.html page handles the OAuth flow securely
+                throw new Error('OAuth exchange is handled by callback.html and GitHub Actions');
             }
 
             initiateLogin() {
-                // SECURITY: Using GitHub OAuth with PKCE flow would be ideal,
-                // but GitHub doesn't support PKCE yet, so we use standard OAuth flow
+                // SECURITY: Generate cryptographically secure state for CSRF protection
                 const state = this.generateRandomString();
                 localStorage.setItem('oauth_state', state);
+                
+                // Clear any existing auth data
+                localStorage.removeItem('github_token');
+                localStorage.removeItem('github_user');
+                localStorage.removeItem('auth_timestamp');
                 
                 const authUrl = `https://github.com/login/oauth/authorize?` +
                     `client_id=${this.clientId}&` +
                     `redirect_uri=${encodeURIComponent(this.redirectUri)}&` +
                     `scope=repo&` +
-                    `state=${state}`;
+                    `state=${state}&` +
+                    `allow_signup=false`; // Only existing users
                 
+                console.log('Redirecting to GitHub OAuth...');
                 window.location.href = authUrl;
             }
 
@@ -421,11 +407,23 @@
 
             async initializeAdmin() {
                 try {
+                    // Check if we have recent authentication data
+                    const authTimestamp = localStorage.getItem('auth_timestamp');
+                    const currentTime = Date.now();
+                    const eightHours = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+                    
+                    if (authTimestamp && (currentTime - parseInt(authTimestamp)) > eightHours) {
+                        // Token expired, clear auth data
+                        this.logout();
+                        return;
+                    }
+                    
                     // Verify user identity and permissions
                     await this.verifyUser();
                     this.showAdmin();
                     await this.loadPosts();
                 } catch (error) {
+                    console.error('Admin initialization error:', error);
                     this.showLoginError('Authentication failed: ' + error.message);
                     this.logout();
                 }
