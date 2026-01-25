@@ -37,6 +37,11 @@
             }
         }
 
+        html, body {
+            min-height: 100vh;
+            height: auto;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             line-height: 1.6;
@@ -185,10 +190,14 @@
         footer {
             text-align: center;
             margin-top: 3rem;
-            padding-top: 2rem;
+            padding: 2rem 1rem;
             border-top: 1px solid var(--border-color);
             color: var(--meta-color);
             font-size: 0.9rem;
+        }
+
+        footer p {
+            margin-bottom: 0.5rem;
         }
 
         footer a {
@@ -218,6 +227,7 @@
 
         <footer>
             <p>Powered by GitHub Pages • <a href="https://github.com/Syrthax/Loading-tips">View on GitHub</a></p>
+            <p>Built by <a href="https://sarthakg.tech">Sarthak</a></p>
         </footer>
     </div>
 
