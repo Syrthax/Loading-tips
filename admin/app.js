@@ -197,7 +197,9 @@ class GitHubBlogAdmin {
             this.posts = await Promise.all(
                 postFiles.map(async (file) => {
                     try {
-                        const contentResponse = await fetch(file.download_url);
+                        // Add cache-busting parameter to avoid stale content
+                        const cacheBuster = `?t=${Date.now()}`;
+                        const contentResponse = await fetch(file.download_url + cacheBuster);
                         const content = await contentResponse.text();
                         
                         return {
