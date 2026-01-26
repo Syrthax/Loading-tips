@@ -245,7 +245,16 @@ class GitHubBlogAdmin {
             const dateMatch = frontmatter.match(/^date:\s*(.+)$/m);
             
             if (titleMatch) title = titleMatch[1].trim().replace(/['"]/g, '');
-            if (dateMatch) date = dateMatch[1].trim();
+            if (dateMatch) {
+                // Normalize date to YYYY-MM-DD format for consistent sorting
+                const rawDate = dateMatch[1].trim();
+                const parsedDate = new Date(rawDate);
+                if (!isNaN(parsedDate.getTime())) {
+                    date = parsedDate.toISOString().split('T')[0];
+                } else {
+                    date = rawDate;
+                }
+            }
         }
 
         return { title, date, bodyContent };

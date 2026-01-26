@@ -317,7 +317,9 @@
 
             async fetchPostContent(file) {
                 try {
-                    const response = await fetch(file.download_url);
+                    // Add cache-busting to avoid stale content after edits
+                    const cacheBuster = `?t=${Date.now()}`;
+                    const response = await fetch(file.download_url + cacheBuster);
                     if (!response.ok) return null;
 
                     const content = await response.text();
@@ -354,7 +356,7 @@
                 const match = content.match(frontmatterRegex);
                 
                 let title = 'Untitled';
-                let date = this.extractDateFromFilename(filename);
+                let date = null; // Don't default to filename - frontmatter is source of truth
                 let postContent = content;
 
                 if (match) {
@@ -366,7 +368,22 @@
                     const dateMatch = frontmatter.match(/^date:\s*(.+)$/m);
                     
                     if (titleMatch) title = titleMatch[1].trim().replace(/['"]/g, '');
-                    if (dateMatch) date = dateMatch[1].trim();
+                    if (dateMatch) {
+                        // Parse and normalize date to ensure consistent sorting
+                        const rawDate = dateMatch[1].trim();
+                        const parsedDate = new Date(rawDate);
+                        if (!isNaN(parsedDate.getTime())) {
+                            // Normalize to YYYY-MM-DD for consistent comparison
+                            date = parsedDate.toISOString().split('T')[0];
+                        } else {
+                            date = rawDate; // Use as-is if parsing fails
+                        }
+                    }
+                }
+
+                // Only fall back to filename date if frontmatter date is missing
+                if (!date) {
+                    date = this.extractDateFromFilename(filename);
                 }
 
                 return {
