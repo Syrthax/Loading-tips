@@ -239,7 +239,19 @@ class GitHubBlogAdmin {
             
             this.posts = this.posts
                 .filter(post => post !== null)
-                .sort((a, b) => new Date(b.date) - new Date(a.date));
+                .sort((a, b) => {
+                    // Safe date comparison - handles invalid dates
+                    const dateA = this.parseDate(a.date);
+                    const dateB = this.parseDate(b.date);
+                    // If both dates are invalid, maintain original order
+                    if (isNaN(dateA) && isNaN(dateB)) return 0;
+                    // Invalid dates go to the end
+                    if (isNaN(dateA)) return 1;
+                    if (isNaN(dateB)) return -1;
+                    // Sort newest first, use filename as tiebreaker for same date
+                    if (dateB - dateA !== 0) return dateB - dateA;
+                    return b.filename.localeCompare(a.filename);
+                });
             
             this.renderPostsList();
             
@@ -471,6 +483,17 @@ class GitHubBlogAdmin {
     // ============================================
     // UTILITIES
     // ============================================
+
+    parseDate(dateString) {
+        // Safe date parsing that handles YYYY-MM-DD format correctly
+        // Append T00:00:00 to avoid timezone shifting issues
+        if (!dateString) return NaN;
+        const normalized = String(dateString).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+            return new Date(normalized + 'T00:00:00').getTime();
+        }
+        return new Date(normalized).getTime();
+    }
 
     generateFilename(title, date) {
         const slug = title
