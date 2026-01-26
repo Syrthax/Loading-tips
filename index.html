@@ -369,14 +369,19 @@
                     
                     if (titleMatch) title = titleMatch[1].trim().replace(/['"]/g, '');
                     if (dateMatch) {
-                        // Parse and normalize date to ensure consistent sorting
+                        // Use the raw date string directly to avoid timezone issues
                         const rawDate = dateMatch[1].trim();
-                        const parsedDate = new Date(rawDate);
-                        if (!isNaN(parsedDate.getTime())) {
-                            // Normalize to YYYY-MM-DD for consistent comparison
-                            date = parsedDate.toISOString().split('T')[0];
+                        // If already YYYY-MM-DD format, use as-is
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+                            date = rawDate;
                         } else {
-                            date = rawDate; // Use as-is if parsing fails
+                            // Try to parse and normalize other formats
+                            const parsedDate = new Date(rawDate + 'T00:00:00');
+                            if (!isNaN(parsedDate.getTime())) {
+                                date = rawDate;
+                            } else {
+                                date = rawDate;
+                            }
                         }
                     }
                 }

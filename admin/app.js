@@ -246,14 +246,8 @@ class GitHubBlogAdmin {
             
             if (titleMatch) title = titleMatch[1].trim().replace(/['"]/g, '');
             if (dateMatch) {
-                // Normalize date to YYYY-MM-DD format for consistent sorting
-                const rawDate = dateMatch[1].trim();
-                const parsedDate = new Date(rawDate);
-                if (!isNaN(parsedDate.getTime())) {
-                    date = parsedDate.toISOString().split('T')[0];
-                } else {
-                    date = rawDate;
-                }
+                // Use the raw date string directly to avoid timezone issues
+                date = dateMatch[1].trim();
             }
         }
 
