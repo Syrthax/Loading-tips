@@ -1,6 +1,6 @@
 ---
 title: "How I made this Blog"
-date: 2026-01-26
+date: 2026-01-25
 ---
 
 So ye making a blog, honestly I am never a writer or a journalist type guy, I hate writing, but recently I joined GitHub developer program which allows me to test api and OAuth tokens of GitHub.<br><br>
