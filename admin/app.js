@@ -215,8 +215,9 @@ class GitHubBlogAdmin {
                         }
                         
                         const fileData = await contentResponse.json();
-                        // Decode base64 content
-                        const content = decodeURIComponent(escape(atob(fileData.content)));
+                        // Decode base64 content (remove newlines first)
+                        const base64 = fileData.content.replace(/\n/g, '');
+                        const content = decodeURIComponent(escape(atob(base64)));
                         
                         return {
                             filename: file.name,

@@ -335,8 +335,9 @@
                     }
 
                     const fileData = await response.json();
-                    // Decode base64 content
-                    const content = decodeURIComponent(escape(atob(fileData.content)));
+                    // Decode base64 content (remove newlines first)
+                    const base64 = fileData.content.replace(/\n/g, '');
+                    const content = decodeURIComponent(escape(atob(base64)));
                     
                     return this.parseContent(content, file.name);
                 } catch (error) {
