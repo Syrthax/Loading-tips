@@ -181,6 +181,7 @@ class GitHubBlogAdmin {
 
             if (!response.ok) {
                 if (response.status === 404) {
+                    console.log('Posts directory not found (404)');
                     this.posts = [];
                     this.renderPostsList();
                     return;
@@ -189,16 +190,17 @@ class GitHubBlogAdmin {
             }
 
             const files = await response.json();
+            console.log(`📁 Found ${files.length} items in posts directory`);
             
             const postFiles = files.filter(file => 
                 file.type === 'file' && file.name.endsWith('.md')
             );
+            console.log(`📄 Filtered to ${postFiles.length} markdown files:`, postFiles.map(f => f.name));
 
             this.posts = await Promise.all(
                 postFiles.map(async (file) => {
                     try {
                         // Fetch content via GitHub API (not raw URL) to avoid CDN caching
-                        // The API returns base64-encoded content which is always fresh
                         const contentResponse = await fetch(
                             `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${this.postsPath}/${file.name}`,
                             {
@@ -211,7 +213,8 @@ class GitHubBlogAdmin {
                         );
                         
                         if (!contentResponse.ok) {
-                            throw new Error(`Failed to fetch ${file.name}`);
+                            console.error(`❌ Failed to fetch ${file.name}: ${contentResponse.status}`);
+                            return null;
                         }
                         
                         const fileData = await contentResponse.json();
@@ -224,21 +227,25 @@ class GitHubBlogAdmin {
                         }
                         const content = new TextDecoder('utf-8').decode(bytes);
                         
+                        const parsed = this.parseMarkdownMeta(content);
+                        console.log(`✅ Loaded ${file.name}: "${parsed.title}" (${parsed.date})`);
+                        
                         return {
                             filename: file.name,
-                            sha: fileData.sha, // Use fresh SHA from this response
+                            sha: fileData.sha,
                             content: content,
-                            ...this.parseMarkdownMeta(content)
+                            ...parsed
                         };
                     } catch (error) {
-                        console.warn(`Failed to load ${file.name}:`, error);
+                        console.error(`⚠️  Error loading ${file.name}:`, error.message);
                         return null;
                     }
                 })
             );
             
-            this.posts = this.posts
-                .filter(post => post !== null)
+            const preFilterCount = this.posts.length;
+            this.posts = this.posts.filter(post => post !== null);
+            console.log(`🔧 After filter: ${this.posts.length} of ${preFilterCount} posts valid`);
                 .sort((a, b) => {
                     // Safe date comparison - handles invalid dates
                     const dateA = this.parseDate(a.date);
@@ -251,8 +258,9 @@ class GitHubBlogAdmin {
                     // Sort newest first, use filename as tiebreaker for same date
                     if (dateB - dateA !== 0) return dateB - dateA;
                     return b.filename.localeCompare(a.filename);
-                });
-            
+                });            
+            console.log(`📊 Final sorted list: ${this.posts.length} posts`);
+            this.posts.forEach(p => console.log(`  - ${p.date} | ${p.title}`));            
             this.renderPostsList();
             
         } catch (error) {
@@ -290,18 +298,26 @@ class GitHubBlogAdmin {
 
     renderPostsList() {
         if (this.posts.length === 0) {
+            console.warn('⚠️  No posts to render. Check admin console for details.');
             this.postsList.innerHTML = '<li style="text-align: center; color: #6c757d;">No posts yet. Create your first post!</li>';
             return;
         }
 
-        this.postsList.innerHTML = this.posts.map(post => `
+        this.postsList.innerHTML = this.posts.map(post => {
+            // Defensive: ensure post has required fields
+            if (!post || !post.filename || !post.title || !post.date) {
+                console.warn('⚠️  Skipping malformed post:', post);
+                return '';
+            }
+            return `
             <li class="post-item" data-filename="${post.filename}" onclick="admin.editPost('${post.filename}')">
                 <div>
                     <div class="post-title-text">${this.escapeHtml(post.title)}</div>
                     <div class="post-meta">${post.date}</div>
                 </div>
             </li>
-        `).join('');
+        `;
+        }).filter(html => html).join('');
     }
 
     highlightSelectedPost(filename) {
