@@ -206,8 +206,7 @@ class GitHubBlogAdmin {
                             {
                                 headers: {
                                     'Authorization': `token ${this.accessToken}`,
-                                    'Accept': 'application/vnd.github.v3+json',
-                                    'Cache-Control': 'no-cache'
+                                    'Accept': 'application/vnd.github.v3+json'
                                 }
                             }
                         );
