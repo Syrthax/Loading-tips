@@ -197,14 +197,30 @@ class GitHubBlogAdmin {
             this.posts = await Promise.all(
                 postFiles.map(async (file) => {
                     try {
-                        // Add cache-busting parameter to avoid stale content
-                        const cacheBuster = `?t=${Date.now()}`;
-                        const contentResponse = await fetch(file.download_url + cacheBuster);
-                        const content = await contentResponse.text();
+                        // Fetch content via GitHub API (not raw URL) to avoid CDN caching
+                        // The API returns base64-encoded content which is always fresh
+                        const contentResponse = await fetch(
+                            `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${this.postsPath}/${file.name}`,
+                            {
+                                headers: {
+                                    'Authorization': `token ${this.accessToken}`,
+                                    'Accept': 'application/vnd.github.v3+json',
+                                    'Cache-Control': 'no-cache'
+                                }
+                            }
+                        );
+                        
+                        if (!contentResponse.ok) {
+                            throw new Error(`Failed to fetch ${file.name}`);
+                        }
+                        
+                        const fileData = await contentResponse.json();
+                        // Decode base64 content
+                        const content = decodeURIComponent(escape(atob(fileData.content)));
                         
                         return {
                             filename: file.name,
-                            sha: file.sha,
+                            sha: fileData.sha, // Use fresh SHA from this response
                             content: content,
                             ...this.parseMarkdownMeta(content)
                         };

@@ -317,22 +317,41 @@
 
             async fetchPostContent(file) {
                 try {
-                    // Add cache-busting to avoid stale content after edits
-                    const cacheBuster = `?t=${Date.now()}`;
-                    const response = await fetch(file.download_url + cacheBuster);
-                    if (!response.ok) return null;
-
-                    const content = await response.text();
+                    // Use GitHub API to get file content directly (bypasses CDN cache)
+                    // For public repos, this works without authentication
+                    const apiUrl = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${this.postsPath}/${file.name}`;
+                    const response = await fetch(apiUrl, {
+                        headers: {
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
                     
-                    if (file.name.endsWith('.json')) {
-                        return this.parseJsonPost(content, file.name);
-                    } else {
-                        return this.parseMarkdownPost(content, file.name);
+                    if (!response.ok) {
+                        // Fallback to raw URL if API fails (rate limiting)
+                        const rawResponse = await fetch(file.download_url);
+                        if (!rawResponse.ok) return null;
+                        const content = await rawResponse.text();
+                        return this.parseContent(content, file.name);
                     }
+
+                    const fileData = await response.json();
+                    // Decode base64 content
+                    const content = decodeURIComponent(escape(atob(fileData.content)));
+                    
+                    return this.parseContent(content, file.name);
                 } catch (error) {
                     console.warn(`Failed to fetch ${file.name}:`, error);
                     return null;
                 }
+            }
+
+            parseContent(content, filename) {
+                if (filename.endsWith('.json')) {
+                    return this.parseJsonPost(content, filename);
+                } else {
+                    return this.parseMarkdownPost(content, filename);
+                }
+            }
             }
 
             parseJsonPost(content, filename) {
