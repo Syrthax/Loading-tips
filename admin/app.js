@@ -244,8 +244,8 @@ class GitHubBlogAdmin {
             );
             
             const preFilterCount = this.posts.length;
-            this.posts = this.posts.filter(post => post !== null);
-            console.log(`🔧 After filter: ${this.posts.length} of ${preFilterCount} posts valid`);
+            this.posts = this.posts
+                .filter(post => post !== null)
                 .sort((a, b) => {
                     // Safe date comparison - handles invalid dates
                     const dateA = this.parseDate(a.date);
@@ -258,7 +258,9 @@ class GitHubBlogAdmin {
                     // Sort newest first, use filename as tiebreaker for same date
                     if (dateB - dateA !== 0) return dateB - dateA;
                     return b.filename.localeCompare(a.filename);
-                });            
+                });
+            
+            console.log(`🔧 After filter: ${this.posts.length} of ${preFilterCount} posts valid`);
             console.log(`📊 Final sorted list: ${this.posts.length} posts`);
             this.posts.forEach(p => console.log(`  - ${p.date} | ${p.title}`));            
             this.renderPostsList();
