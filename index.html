@@ -176,6 +176,7 @@
             margin-bottom: 1.5rem;
             transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.4s ease;
             animation: fadeSlideIn 0.6s ease-out both;
+            cursor: pointer;
         }
 
         .post:hover {
@@ -593,8 +594,9 @@
 
                 this.postsEl.innerHTML = posts.map(post => {
                     const slug = this.filenameToSlug(post.filename);
+                    const postUrl = `post.html?id=${encodeURIComponent(slug)}`;
                     return `
-                    <article class="post glass">
+                    <article class="post glass" onclick="window.location.href='${postUrl}'">
                         <div class="post-header">
                             <img src="https://github.com/Syrthax.png" alt="Sarthak" class="author-avatar">
                             <div class="author-info">
@@ -603,8 +605,8 @@
                             </div>
                         </div>
                         <div class="post-title-row">
-                            <a href="post.html?id=${encodeURIComponent(slug)}" class="post-title">${this.escapeHtml(post.title)}</a>
-                            <button class="share-btn" onclick="copyPostLink('${slug}')" title="Copy link">${SHARE_SVG}</button>
+                            <a href="post.html?id=${encodeURIComponent(slug)}" class="post-title" onclick="event.stopPropagation()">${this.escapeHtml(post.title)}</a>
+                            <button class="share-btn" onclick="event.stopPropagation(); copyPostLink('${slug}')" title="Copy link">${SHARE_SVG}</button>
                         </div>
                         <div class="post-content">${post.content}</div>
                     </article>`;

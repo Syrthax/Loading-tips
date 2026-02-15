@@ -383,6 +383,9 @@ class GitHubBlogAdmin {
             const sha = this.isNewPost ? null : this.currentPost.sha;
             await this.commitFile(filename, markdownContent, sha);
             
+            // Sync posts.json so post.html and posts.html can find this post
+            await this.syncPostsJson('upsert', filename, title, date);
+            
             this.showMessage('success', 'Post saved successfully!');
             await this.loadPosts();
             this.cancelEdit();
@@ -401,7 +404,11 @@ class GitHubBlogAdmin {
         }
         
         try {
-            await this.deleteFile(this.currentPost.filename, this.currentPost.sha);
+            const filename = this.currentPost.filename;
+            await this.deleteFile(filename, this.currentPost.sha);
+            
+            // Remove from posts.json
+            await this.syncPostsJson('delete', filename);
             
             this.showMessage('success', 'Post deleted successfully!');
             await this.loadPosts();
@@ -494,6 +501,101 @@ class GitHubBlogAdmin {
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.message || `GitHub API error: ${response.status}`);
+        }
+    }
+
+    // ============================================
+    // POSTS.JSON SYNC
+    // ============================================
+
+    filenameToSlug(filename) {
+        const m = filename.match(/^(\d{4})-(\d{2})-(\d{2})-(.+)\.md$/);
+        if (!m) return filename.replace('.md', '');
+        const yy = m[1].slice(2);
+        const slug = m[4].split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+        return yy + m[2] + m[3] + slug;
+    }
+
+    async syncPostsJson(action, filename, title, date) {
+        try {
+            // Fetch current posts.json (with SHA for update)
+            const response = await fetch(
+                `https://api.github.com/repos/${this.owner}/${this.repo}/contents/posts.json`,
+                {
+                    headers: {
+                        'Authorization': `token ${this.accessToken}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                }
+            );
+
+            let posts = [];
+            let sha = null;
+
+            if (response.ok) {
+                const fileData = await response.json();
+                sha = fileData.sha;
+                const base64 = fileData.content.replace(/\n/g, '');
+                const decoded = decodeURIComponent(escape(atob(base64)));
+                posts = JSON.parse(decoded);
+            }
+
+            const slug = this.filenameToSlug(filename);
+
+            if (action === 'upsert') {
+                // Remove existing entry for this file (handles renames)
+                posts = posts.filter(p => p.file !== filename);
+                // Add the new/updated entry
+                posts.unshift({
+                    title: title,
+                    slug: slug,
+                    date: date,
+                    file: filename
+                });
+                // Sort newest first
+                posts.sort((a, b) => {
+                    const da = new Date(a.date + 'T00:00:00').getTime();
+                    const db = new Date(b.date + 'T00:00:00').getTime();
+                    return db - da;
+                });
+            } else if (action === 'delete') {
+                posts = posts.filter(p => p.file !== filename);
+            }
+
+            // Commit updated posts.json
+            const newContent = JSON.stringify(posts, null, 2) + '\n';
+            const requestBody = {
+                message: `Sync posts.json: ${action} ${filename}`,
+                content: btoa(unescape(encodeURIComponent(newContent))),
+                committer: {
+                    name: this.currentUser.name || this.currentUser.login,
+                    email: this.currentUser.email || `${this.currentUser.login}@users.noreply.github.com`
+                }
+            };
+            if (sha) requestBody.sha = sha;
+
+            const putResponse = await fetch(
+                `https://api.github.com/repos/${this.owner}/${this.repo}/contents/posts.json`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${this.accessToken}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                }
+            );
+
+            if (!putResponse.ok) {
+                const err = await putResponse.json();
+                console.error('Failed to sync posts.json:', err.message);
+            } else {
+                console.log(`✅ posts.json synced: ${action} ${filename}`);
+            }
+        } catch (error) {
+            console.error('Error syncing posts.json:', error);
+            // Non-fatal: post was saved, just posts.json didn't update
         }
     }
 
