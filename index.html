@@ -210,6 +210,7 @@
         <header>
             <h1>Loading Tips</h1>
             <p class="subtitle">A blog about stuffs I faced and learnt</p>
+            <nav style="margin-top: 1rem;"><a href="posts.html" style="color: var(--link-color); text-decoration: none; font-size: 0.95rem;">View All Posts &rarr;</a></nav>
         </header>
 
         <div id="loading" class="loading">
@@ -480,7 +481,9 @@
                     return;
                 }
 
-                this.postsEl.innerHTML = posts.map(post => `
+                this.postsEl.innerHTML = posts.map(post => {
+                    const slug = this.filenameToSlug(post.filename);
+                    return `
                     <article class="post">
                         <div class="post-header">
                             <img src="https://github.com/Syrthax.png" alt="Sarthak" class="author-avatar">
@@ -489,10 +492,19 @@
                                 <div class="post-date">${this.formatDate(post.date)}</div>
                             </div>
                         </div>
-                        <h2 class="post-title">${this.escapeHtml(post.title)}</h2>
+                        <a href="post.html?id=${encodeURIComponent(slug)}" class="post-title">${this.escapeHtml(post.title)}</a>
                         <div class="post-content">${post.content}</div>
-                    </article>
-                `).join('');
+                    </article>`;
+                }).join('');
+            }
+
+            filenameToSlug(filename) {
+                // 2026-01-26-kiosk.md → 260126Kiosk
+                const m = filename.match(/^(\d{4})-(\d{2})-(\d{2})-(.+)\.md$/);
+                if (!m) return filename.replace('.md', '');
+                const yy = m[1].slice(2);
+                const slug = m[4].split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+                return yy + m[2] + m[3] + slug;
             }
 
             escapeHtml(text) {

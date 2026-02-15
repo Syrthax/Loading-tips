@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Posts - Loading Tips</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: white;
+            --text-color: #333;
+            --heading-color: #2c3e50;
+            --meta-color: #6c757d;
+            --border-color: #e9ecef;
+            --link-color: #3498db;
+            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a2e;
+                --card-bg: #16213e;
+                --text-color: #e4e4e4;
+                --heading-color: #f1f1f1;
+                --meta-color: #a0a0a0;
+                --border-color: #2a2a4a;
+                --link-color: #64b5f6;
+                --shadow: 0 2px 8px rgba(0,0,0,0.3);
+            }
+        }
+
+        html, body { min-height: 100vh; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: var(--heading-color);
+            margin-bottom: 0.5rem;
+        }
+
+        header h1 a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        header h1 a:hover {
+            color: var(--link-color);
+        }
+
+        .subtitle {
+            color: var(--meta-color);
+            font-size: 1.1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--meta-color);
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 2rem;
+        }
+
+        .posts-list {
+            list-style: none;
+        }
+
+        .posts-list li {
+            background: var(--card-bg);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .posts-list li:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .posts-list a {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem 2rem;
+            text-decoration: none;
+            color: var(--text-color);
+        }
+
+        .post-info {
+            flex: 1;
+        }
+
+        .post-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--heading-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .post-date {
+            font-size: 0.85rem;
+            color: var(--meta-color);
+        }
+
+        .post-arrow {
+            color: var(--meta-color);
+            font-size: 1.2rem;
+            transition: transform 0.2s;
+        }
+
+        .posts-list li:hover .post-arrow {
+            transform: translateX(4px);
+            color: var(--link-color);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--meta-color);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 2rem 1rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--meta-color);
+            font-size: 0.9rem;
+        }
+
+        footer p { margin-bottom: 0.5rem; }
+        footer a { color: var(--link-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="index.html">Loading Tips</a></h1>
+            <p class="subtitle">All Posts</p>
+        </header>
+
+        <div id="loading" class="loading">Loading posts...</div>
+        <div id="error" class="error" style="display: none;"></div>
+
+        <ul id="posts-list" class="posts-list" style="display: none;"></ul>
+
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <h3>No posts yet</h3>
+            <p>Check back soon!</p>
+        </div>
+
+        <footer>
+            <p>Powered by GitHub Pages &bull; <a href="https://github.com/Syrthax/Loading-tips">View on GitHub</a></p>
+            <p>Built by <a href="https://sarthakg.tech">Sarthak</a></p>
+        </footer>
+    </div>
+
+    <script>
+        (function () {
+            const loadingEl  = document.getElementById('loading');
+            const errorEl    = document.getElementById('error');
+            const listEl     = document.getElementById('posts-list');
+            const emptyEl    = document.getElementById('empty-state');
+
+            function showError(msg) {
+                loadingEl.style.display = 'none';
+                errorEl.style.display = 'block';
+                errorEl.textContent = msg;
+            }
+
+            function formatDate(dateStr) {
+                try {
+                    const d = new Date(dateStr + 'T00:00:00');
+                    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                } catch { return dateStr; }
+            }
+
+            function escapeHtml(text) {
+                const el = document.createElement('span');
+                el.textContent = text;
+                return el.innerHTML;
+            }
+
+            async function loadPosts() {
+                try {
+                    const res = await fetch('posts.json');
+                    if (!res.ok) throw new Error('Could not load posts list.');
+                    const posts = await res.json();
+
+                    loadingEl.style.display = 'none';
+
+                    if (!posts.length) {
+                        emptyEl.style.display = 'block';
+                        return;
+                    }
+
+                    listEl.innerHTML = posts.map(function (p) {
+                        return '<li>'
+                            + '<a href="post.html?id=' + encodeURIComponent(p.slug) + '">'
+                            + '  <div class="post-info">'
+                            + '    <div class="post-title">' + escapeHtml(p.title) + '</div>'
+                            + '    <div class="post-date">' + formatDate(p.date) + '</div>'
+                            + '  </div>'
+                            + '  <span class="post-arrow">&rarr;</span>'
+                            + '</a>'
+                            + '</li>';
+                    }).join('');
+
+                    listEl.style.display = 'block';
+                } catch (err) {
+                    showError(err.message);
+                    console.error(err);
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', loadPosts);
+        })();
+    </script>
+</body>
+</html>

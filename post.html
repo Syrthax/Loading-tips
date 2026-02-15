@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading Tips</title>
+    <!-- Markdown parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: white;
+            --text-color: #333;
+            --heading-color: #2c3e50;
+            --meta-color: #6c757d;
+            --border-color: #e9ecef;
+            --code-bg: #f8f9fa;
+            --link-color: #3498db;
+            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a2e;
+                --card-bg: #16213e;
+                --text-color: #e4e4e4;
+                --heading-color: #f1f1f1;
+                --meta-color: #a0a0a0;
+                --border-color: #2a2a4a;
+                --code-bg: #0f0f1a;
+                --link-color: #64b5f6;
+                --shadow: 0 2px 8px rgba(0,0,0,0.3);
+            }
+        }
+
+        html, body { min-height: 100vh; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        /* Header */
+        header {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .back-link {
+            color: var(--link-color);
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .back-link:hover { text-decoration: underline; }
+
+        header h1 {
+            font-size: 2rem;
+            color: var(--heading-color);
+        }
+
+        header h1 a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        header h1 a:hover { color: var(--link-color); }
+
+        /* States */
+        .loading {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--meta-color);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--link-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 0.75rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .error a { color: #721c24; font-weight: 600; }
+
+        /* Article */
+        .post-article {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .post-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .author-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .meta-text .author-name {
+            font-weight: 600;
+            color: var(--heading-color);
+        }
+
+        .meta-text .post-date {
+            font-size: 0.85rem;
+            color: var(--meta-color);
+        }
+
+        /* Rendered markdown */
+        .post-body h1, .post-body h2, .post-body h3 {
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--heading-color);
+        }
+
+        .post-body p { margin-bottom: 1rem; }
+
+        .post-body a { color: var(--link-color); }
+
+        .post-body code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            color: var(--text-color);
+        }
+
+        .post-body pre {
+            background: var(--code-bg);
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .post-body pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .post-body ul, .post-body ol {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .post-body li { margin-bottom: 0.5rem; }
+
+        .post-body blockquote {
+            border-left: 4px solid var(--link-color);
+            padding: 0.5rem 1rem;
+            margin: 1rem 0;
+            color: var(--meta-color);
+            background: var(--code-bg);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .post-body img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .post-body hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 2rem 0;
+        }
+
+        /* Reply section */
+        .reply-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .reply-section h3 {
+            color: var(--heading-color);
+            margin-bottom: 1.25rem;
+            font-size: 1.3rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.35rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--heading-color);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--link-color);
+        }
+
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .submit-btn {
+            background: var(--link-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .submit-btn:hover { opacity: 0.9; }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 2rem 1rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--meta-color);
+            font-size: 0.9rem;
+        }
+
+        footer p { margin-bottom: 0.5rem; }
+        footer a { color: var(--link-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <a href="posts.html" class="back-link">&larr; All Posts</a>
+            </div>
+            <h1><a href="index.html">Loading Tips</a></h1>
+        </header>
+
+        <!-- Loading state -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading post&hellip;</p>
+        </div>
+
+        <!-- Error state -->
+        <div id="error" class="error" style="display: none;"></div>
+
+        <!-- Post content -->
+        <article id="post" class="post-article" style="display: none;">
+            <div class="post-meta">
+                <img src="https://github.com/Syrthax.png" alt="Sarthak" class="author-avatar">
+                <div class="meta-text">
+                    <div class="author-name">Sarthak</div>
+                    <div id="post-date" class="post-date"></div>
+                </div>
+            </div>
+            <h2 id="post-title" style="font-size:1.6rem; color:var(--heading-color); margin-bottom:1.25rem;"></h2>
+            <div id="post-body" class="post-body"></div>
+        </article>
+
+        <!-- Reply section -->
+        <section id="reply-section" class="reply-section" style="display: none;">
+            <h3>Leave a Reply</h3>
+            <!--
+                ╔══════════════════════════════════════════════════════════════╗
+                ║  FORMSUBMIT SETUP (one-time)                               ║
+                ║                                                            ║
+                ║  1. Replace YOUR_EMAIL below with your real email address.  ║
+                ║  2. Submit the form once. FormSubmit will email you a       ║
+                ║     confirmation link — click it.                          ║
+                ║  3. After activation, FormSubmit gives you a unique hash.  ║
+                ║     Replace YOUR_EMAIL with that hash to hide your email   ║
+                ║     from the HTML source.                                  ║
+                ║                                                            ║
+                ║  Example hash: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6           ║
+                ║  Form action becomes:                                      ║
+                ║  https://formsubmit.co/a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6  ║
+                ╚══════════════════════════════════════════════════════════════╝
+            -->
+            <form id="reply-form" action="https://formsubmit.co/Sarthak@sarthakg.tech" method="POST">
+                <!-- Honeypot spam protection (hidden from real users) -->
+                <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off">
+                <!-- Disable captcha page -->
+                <input type="hidden" name="_captcha" value="false">
+                <!-- Redirect back to the post after submission -->
+                <input type="hidden" name="_next" id="form-next" value="">
+                <!-- Email subject line -->
+                <input type="hidden" name="_subject" id="form-subject" value="New reply on Loading Tips">
+
+                <div class="form-group">
+                    <label for="reply-name">Name</label>
+                    <input type="text" id="reply-name" name="name" class="form-control" placeholder="Your name" required>
+                </div>
+                <div class="form-group">
+                    <label for="reply-email">Email</label>
+                    <input type="email" id="reply-email" name="email" class="form-control" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="reply-message">Message</label>
+                    <textarea id="reply-message" name="message" class="form-control" placeholder="Write your reply…" required></textarea>
+                </div>
+                <button type="submit" class="submit-btn">Send Reply</button>
+            </form>
+        </section>
+
+        <footer>
+            <p>Powered by GitHub Pages &bull; <a href="https://github.com/Syrthax/Loading-tips">View on GitHub</a></p>
+            <p>Built by <a href="https://sarthakg.tech">Sarthak</a></p>
+        </footer>
+    </div>
+
+    <script>
+        (function () {
+            // ── Configuration ──────────────────────────────────────────────
+            var POSTS_JSON = 'posts.json';
+            var POSTS_DIR  = 'posts';
+
+            // ── DOM refs ───────────────────────────────────────────────────
+            var loadingEl    = document.getElementById('loading');
+            var errorEl      = document.getElementById('error');
+            var postEl       = document.getElementById('post');
+            var postTitleEl  = document.getElementById('post-title');
+            var postDateEl   = document.getElementById('post-date');
+            var postBodyEl   = document.getElementById('post-body');
+            var replySection = document.getElementById('reply-section');
+            var formNext     = document.getElementById('form-next');
+            var formSubject  = document.getElementById('form-subject');
+
+            // ── Helpers ────────────────────────────────────────────────────
+            function showLoading() {
+                loadingEl.style.display = 'block';
+                errorEl.style.display   = 'none';
+                postEl.style.display    = 'none';
+                replySection.style.display = 'none';
+            }
+
+            function showError(msg) {
+                loadingEl.style.display = 'none';
+                errorEl.style.display   = 'block';
+                errorEl.innerHTML       = msg;
+            }
+
+            function showPost() {
+                loadingEl.style.display    = 'none';
+                postEl.style.display       = 'block';
+                replySection.style.display = 'block';
+            }
+
+            function formatDate(dateStr) {
+                try {
+                    var d = new Date(dateStr + 'T00:00:00');
+                    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                } catch (e) { return dateStr; }
+            }
+
+            function stripFrontmatter(raw) {
+                // Remove YAML frontmatter (---...\n---) from markdown
+                var m = raw.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n([\s\S]*)$/);
+                return m ? m[1] : raw;
+            }
+
+            // ── Main ──────────────────────────────────────────────────────
+            async function init() {
+                showLoading();
+
+                // 1. Read slug from URL
+                var params = new URLSearchParams(window.location.search);
+                var slug   = params.get('id');
+
+                if (!slug) {
+                    showError('No post specified. <a href="posts.html">Browse all posts &rarr;</a>');
+                    return;
+                }
+
+                try {
+                    // 2. Load posts.json to find the matching post
+                    var res = await fetch(POSTS_JSON);
+                    if (!res.ok) throw new Error('Could not load posts metadata.');
+                    var posts = await res.json();
+
+                    var post = posts.find(function (p) { return p.slug === slug; });
+                    if (!post) {
+                        showError(
+                            'Post not found: <strong>' + slug + '</strong>.<br>' +
+                            '<a href="posts.html">Browse all posts &rarr;</a>'
+                        );
+                        return;
+                    }
+
+                    // 3. Fetch the markdown file
+                    var mdRes = await fetch(POSTS_DIR + '/' + post.file);
+                    if (!mdRes.ok) throw new Error('Could not load post content.');
+                    var mdRaw = await mdRes.text();
+
+                    // 4. Strip frontmatter and render markdown
+                    var mdBody = stripFrontmatter(mdRaw);
+                    var html   = marked.parse(mdBody);
+
+                    // 5. Populate the page
+                    document.title             = post.title + ' — Loading Tips';
+                    postTitleEl.textContent     = post.title;
+                    postDateEl.textContent      = formatDate(post.date);
+                    postBodyEl.innerHTML        = html;
+
+                    // 6. Configure reply form
+                    formNext.value    = window.location.href;
+                    formSubject.value = 'Reply to: ' + post.title;
+
+                    showPost();
+                } catch (err) {
+                    showError(err.message + ' <a href="posts.html">Browse all posts &rarr;</a>');
+                    console.error(err);
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', init);
+        })();
+    </script>
+</body>
+</html>
