@@ -5,216 +5,382 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loading Tips - Blog</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg-color: #f8f9fa;
-            --card-bg: white;
-            --text-color: #333;
-            --heading-color: #2c3e50;
-            --meta-color: #6c757d;
-            --border-color: #e9ecef;
-            --code-bg: #f8f9fa;
-            --link-color: #3498db;
-            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+            --bg: #f2f2f7;
+            --bg-gradient: linear-gradient(135deg, #e8e0f0 0%, #d4e4f7 30%, #e8f0e4 60%, #f7e8d4 100%);
+            --glass-bg: rgba(255,255,255,0.45);
+            --glass-border: rgba(255,255,255,0.6);
+            --glass-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            --glass-blur: 20px;
+            --text: #1d1d1f;
+            --heading: #000;
+            --meta: #86868b;
+            --accent: #0071e3;
+            --accent-hover: #0077ed;
+            --code-bg: rgba(0,0,0,0.04);
+            --card-hover-shadow: 0 12px 40px rgba(0,0,0,0.12);
+            --toast-bg: rgba(0,0,0,0.75);
+            --toast-text: #fff;
         }
 
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-color: #1a1a2e;
-                --card-bg: #16213e;
-                --text-color: #e4e4e4;
-                --heading-color: #f1f1f1;
-                --meta-color: #a0a0a0;
-                --border-color: #2a2a4a;
-                --code-bg: #0f0f1a;
-                --link-color: #64b5f6;
-                --shadow: 0 2px 8px rgba(0,0,0,0.3);
+                --bg: #000000;
+                --bg-gradient: linear-gradient(135deg, #1a1030 0%, #0a1628 30%, #0a1a10 60%, #1a1408 100%);
+                --glass-bg: rgba(30,30,35,0.55);
+                --glass-border: rgba(255,255,255,0.08);
+                --glass-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                --text: #f5f5f7;
+                --heading: #fff;
+                --meta: #98989d;
+                --accent: #2997ff;
+                --accent-hover: #40a9ff;
+                --code-bg: rgba(255,255,255,0.06);
+                --card-hover-shadow: 0 12px 40px rgba(0,0,0,0.5);
+                --toast-bg: rgba(255,255,255,0.85);
+                --toast-text: #000;
             }
         }
 
-        html, body {
-            min-height: 100vh;
-            height: auto;
-        }
+        html, body { min-height: 100vh; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            color: var(--text-color);
-            background: var(--bg-color);
-            transition: background 0.3s, color 0.3s;
+            color: var(--text);
+            background: var(--bg);
+            background-image: var(--bg-gradient);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Animated gradient orbs */
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            z-index: 0;
+            pointer-events: none;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        body::before {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(0,113,227,0.25), transparent 70%);
+            top: -100px; left: -100px;
+        }
+
+        body::after {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(168,85,247,0.2), transparent 70%);
+            bottom: -50px; right: -50px;
+            animation-delay: -10s;
+            animation-direction: reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(60px, 40px) scale(1.05); }
+            50% { transform: translate(-30px, 80px) scale(0.95); }
+            75% { transform: translate(40px, -20px) scale(1.02); }
         }
 
         .container {
+            position: relative;
+            z-index: 1;
             max-width: 800px;
             margin: 0 auto;
             padding: 2rem 1rem;
         }
 
+        /* Glass card mixin */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        /* Header */
         header {
             text-align: center;
-            margin-bottom: 3rem;
-            padding-bottom: 2rem;
-            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 2.5rem;
+            padding: 2.5rem 2rem 2rem;
+            animation: fadeSlideIn 0.8s ease-out;
         }
 
         h1 {
             font-size: 2.5rem;
-            color: var(--heading-color);
-            margin-bottom: 0.5rem;
+            font-weight: 700;
+            color: var(--heading);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.4rem;
         }
 
         .subtitle {
-            color: var(--meta-color);
-            font-size: 1.1rem;
+            color: var(--meta);
+            font-size: 1.05rem;
+            font-weight: 400;
         }
 
+        .nav-link {
+            display: inline-block;
+            margin-top: 1rem;
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover { color: var(--accent-hover); }
+
+        /* Loading */
         .loading {
             text-align: center;
-            padding: 2rem;
-            color: var(--meta-color);
+            padding: 3rem 1rem;
+            color: var(--meta);
         }
+
+        .spinner {
+            display: inline-block;
+            width: 28px; height: 28px;
+            border: 3px solid var(--glass-border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 0.75rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 1rem;
-            border-radius: 4px;
+            background: rgba(255,59,48,0.12);
+            border: 1px solid rgba(255,59,48,0.2);
+            color: #ff3b30;
+            padding: 1rem 1.5rem;
+            border-radius: 16px;
             margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
         }
 
+        /* Post cards */
         .post {
-            background: var(--card-bg);
-            border-radius: 12px;
             padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow);
-            transition: background 0.3s, box-shadow 0.3s;
+            margin-bottom: 1.5rem;
+            transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.4s ease;
+            animation: fadeSlideIn 0.6s ease-out both;
+        }
+
+        .post:hover {
+            transform: translateY(-4px) scale(1.005);
+            box-shadow: var(--card-hover-shadow);
         }
 
         .post-header {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
             margin-bottom: 1rem;
         }
 
         .author-avatar {
-            width: 48px;
-            height: 48px;
+            width: 40px; height: 40px;
             border-radius: 50%;
             object-fit: cover;
+            border: 2px solid var(--glass-border);
         }
 
-        .author-info {
-            flex: 1;
-        }
+        .author-info { flex: 1; }
 
         .author-name {
             font-weight: 600;
-            color: var(--heading-color);
-            font-size: 1rem;
+            color: var(--heading);
+            font-size: 0.95rem;
         }
 
         .post-date {
-            color: var(--meta-color);
-            font-size: 0.85rem;
+            color: var(--meta);
+            font-size: 0.8rem;
+        }
+
+        /* Title row with share button */
+        .post-title-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
         }
 
         .post-title {
-            font-size: 1.5rem;
-            color: var(--heading-color);
-            margin-bottom: 1rem;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--heading);
             text-decoration: none;
+            letter-spacing: -0.01em;
+            transition: color 0.2s;
+            flex: 1;
         }
 
-        .post-title:hover {
-            color: var(--link-color);
+        .post-title:hover { color: var(--accent); }
+
+        /* Share button */
+        .share-btn {
+            flex-shrink: 0;
+            width: 36px; height: 36px;
+            border: none;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.2s;
+            position: relative;
+        }
+
+        .share-btn:hover {
+            transform: scale(1.15);
+            background: var(--accent);
+        }
+
+        .share-btn:hover svg { stroke: #fff; }
+
+        .share-btn:active { transform: scale(0.95); }
+
+        .share-btn svg {
+            width: 16px; height: 16px;
+            stroke: var(--text);
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.2s;
+        }
+
+        /* Copied toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--toast-bg);
+            color: var(--toast-text);
+            padding: 0.6rem 1.4rem;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
 
         .post-content {
             line-height: 1.8;
-            color: var(--text-color);
+            color: var(--text);
         }
 
         .post-content h1, .post-content h2, .post-content h3 {
             margin-top: 1.5rem;
             margin-bottom: 0.5rem;
-            color: var(--heading-color);
+            color: var(--heading);
         }
 
-        .post-content p {
-            margin-bottom: 1rem;
-        }
+        .post-content p { margin-bottom: 1rem; }
 
         .post-content code {
             background: var(--code-bg);
             padding: 0.2rem 0.4rem;
-            border-radius: 3px;
-            font-family: 'Monaco', 'Consolas', monospace;
-            color: var(--text-color);
+            border-radius: 6px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.9em;
         }
 
         .post-content pre {
             background: var(--code-bg);
             padding: 1rem;
-            border-radius: 4px;
+            border-radius: 12px;
             overflow-x: auto;
             margin: 1rem 0;
         }
 
-        .post-content a {
-            color: var(--link-color);
-        }
+        .post-content a { color: var(--accent); }
 
         .post-content ul, .post-content ol {
             margin: 1rem 0;
             padding-left: 2rem;
         }
 
-        .post-content li {
-            margin-bottom: 0.5rem;
-        }
+        .post-content li { margin-bottom: 0.5rem; }
 
         .empty-state {
             text-align: center;
             padding: 3rem 1rem;
-            color: var(--meta-color);
+            color: var(--meta);
         }
 
         footer {
             text-align: center;
             margin-top: 3rem;
             padding: 2rem 1rem;
-            border-top: 1px solid var(--border-color);
-            color: var(--meta-color);
-            font-size: 0.9rem;
+            color: var(--meta);
+            font-size: 0.85rem;
         }
 
-        footer p {
-            margin-bottom: 0.5rem;
+        footer p { margin-bottom: 0.4rem; }
+        footer a { color: var(--accent); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        /* Animations */
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
-        footer a {
-            color: var(--link-color);
+        /* Staggered animation for posts */
+        .post:nth-child(1) { animation-delay: 0.1s; }
+        .post:nth-child(2) { animation-delay: 0.2s; }
+        .post:nth-child(3) { animation-delay: 0.3s; }
+        .post:nth-child(4) { animation-delay: 0.4s; }
+        .post:nth-child(5) { animation-delay: 0.5s; }
+        .post:nth-child(6) { animation-delay: 0.6s; }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2rem; }
+            .post { padding: 1.5rem; border-radius: 16px; }
+            header { padding: 2rem 1.5rem 1.5rem; border-radius: 16px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
+        <header class="glass">
             <h1>Loading Tips</h1>
             <p class="subtitle">A blog about stuffs I faced and learnt</p>
-            <nav style="margin-top: 1rem;"><a href="posts.html" style="color: var(--link-color); text-decoration: none; font-size: 0.95rem;">View All Posts &rarr;</a></nav>
+            <a href="posts.html" class="nav-link">View All Posts &rarr;</a>
         </header>
 
         <div id="loading" class="loading">
-            Loading posts...
+            <div class="spinner"></div>
+            <p>Loading posts&hellip;</p>
         </div>
 
         <div id="error" class="error" style="display: none;"></div>
@@ -227,19 +393,48 @@
         </div>
 
         <footer>
-            <p>Powered by GitHub Pages • <a href="https://github.com/Syrthax/Loading-tips">View on GitHub</a></p>
+            <p>Powered by GitHub Pages &bull; <a href="https://github.com/Syrthax/Loading-tips">View on GitHub</a></p>
             <p>Built by <a href="https://sarthakg.tech">Sarthak</a></p>
         </footer>
     </div>
 
+    <!-- Toast notification -->
+    <div id="toast" class="toast">Link copied!</div>
+
     <script>
+        // ── Toast helper ──────────────────────────────────────
+        function showToast(msg) {
+            var t = document.getElementById('toast');
+            t.textContent = msg || 'Link copied!';
+            t.classList.add('show');
+            clearTimeout(t._tid);
+            t._tid = setTimeout(function() { t.classList.remove('show'); }, 2000);
+        }
+
+        function copyPostLink(slug) {
+            var url = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'post.html?id=' + encodeURIComponent(slug);
+            navigator.clipboard.writeText(url).then(function() {
+                showToast('Link copied!');
+            }).catch(function() {
+                // Fallback
+                var inp = document.createElement('input');
+                inp.value = url;
+                document.body.appendChild(inp);
+                inp.select();
+                document.execCommand('copy');
+                document.body.removeChild(inp);
+                showToast('Link copied!');
+            });
+        }
+
+        // ── Share icon SVG ────────────────────────────────────
+        var SHARE_SVG = '<svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
+
         class BlogLoader {
             constructor() {
-                // Configuration - modify these for your repository
-                this.owner = 'Syrthax'; // Your GitHub username
-                this.repo = 'Loading-tips';   // Your repository name (matches GitHub)
-                this.postsPath = 'posts';     // Path to posts directory
-                
+                this.owner = 'Syrthax';
+                this.repo = 'Loading-tips';
+                this.postsPath = 'posts';
                 this.loadingEl = document.getElementById('loading');
                 this.errorEl = document.getElementById('error');
                 this.postsEl = document.getElementById('posts');
@@ -275,88 +470,56 @@
             }
 
             async fetchPosts() {
-                // SECURITY: Using only public GitHub API endpoints
-                // No authentication tokens or secrets required
                 const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${this.postsPath}`;
-                
                 const response = await fetch(url, {
-                    headers: {
-                        'Accept': 'application/vnd.github.v3+json',
-                        // No Authorization header - public access only
-                    }
+                    headers: { 'Accept': 'application/vnd.github.v3+json' }
                 });
 
                 if (!response.ok) {
                     if (response.status === 404) {
-                        throw new Error(`Repository or posts directory not found. Check that ${this.owner}/${this.repo} exists and has a ${this.postsPath} folder.`);
+                        throw new Error(`Repository or posts directory not found.`);
                     }
                     throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
                 }
 
                 const files = await response.json();
-                
-                // Filter for markdown and JSON files
-                const postFiles = files.filter(file => 
-                    file.type === 'file' && 
-                    (file.name.endsWith('.md') || file.name.endsWith('.json'))
+                const postFiles = files.filter(file =>
+                    file.type === 'file' && (file.name.endsWith('.md') || file.name.endsWith('.json'))
                 );
 
-                if (postFiles.length === 0) {
-                    return [];
-                }
+                if (postFiles.length === 0) return [];
 
-                // Fetch content for each post file
-                const posts = await Promise.all(
-                    postFiles.map(file => this.fetchPostContent(file))
-                );
+                const posts = await Promise.all(postFiles.map(file => this.fetchPostContent(file)));
 
-                // Filter out failed fetches and sort by date (newest first)
-                return posts
-                    .filter(post => post !== null)
-                    .sort((a, b) => {
-                        // Safe date comparison - handles invalid dates
-                        const dateA = this.parseDate(a.date);
-                        const dateB = this.parseDate(b.date);
-                        // If both dates are invalid, maintain original order
-                        if (isNaN(dateA) && isNaN(dateB)) return 0;
-                        // Invalid dates go to the end
-                        if (isNaN(dateA)) return 1;
-                        if (isNaN(dateB)) return -1;
-                        // Sort newest first, use filename as tiebreaker for same date
-                        if (dateB - dateA !== 0) return dateB - dateA;
-                        return b.filename.localeCompare(a.filename);
-                    });
+                return posts.filter(post => post !== null).sort((a, b) => {
+                    const dateA = this.parseDate(a.date);
+                    const dateB = this.parseDate(b.date);
+                    if (isNaN(dateA) && isNaN(dateB)) return 0;
+                    if (isNaN(dateA)) return 1;
+                    if (isNaN(dateB)) return -1;
+                    if (dateB - dateA !== 0) return dateB - dateA;
+                    return b.filename.localeCompare(a.filename);
+                });
             }
 
             async fetchPostContent(file) {
                 try {
-                    // Use GitHub API to get file content directly (bypasses CDN cache)
-                    // For public repos, this works without authentication
                     const apiUrl = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${this.postsPath}/${file.name}`;
                     const response = await fetch(apiUrl, {
-                        headers: {
-                            'Accept': 'application/vnd.github.v3+json'
-                        }
+                        headers: { 'Accept': 'application/vnd.github.v3+json' }
                     });
-                    
                     if (!response.ok) {
-                        // Fallback to raw URL if API fails (rate limiting)
                         const rawResponse = await fetch(file.download_url);
                         if (!rawResponse.ok) return null;
                         const content = await rawResponse.text();
                         return this.parseContent(content, file.name);
                     }
-
                     const fileData = await response.json();
-                    // Decode base64 content with proper UTF-8 handling
                     const base64 = fileData.content.replace(/\n/g, '');
                     const binaryString = atob(base64);
                     const bytes = new Uint8Array(binaryString.length);
-                    for (let i = 0; i < binaryString.length; i++) {
-                        bytes[i] = binaryString.charCodeAt(i);
-                    }
+                    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
                     const content = new TextDecoder('utf-8').decode(bytes);
-                    
                     return this.parseContent(content, file.name);
                 } catch (error) {
                     console.warn(`Failed to fetch ${file.name}:`, error);
@@ -366,100 +529,51 @@
 
             parseContent(content, filename) {
                 try {
-                    if (filename.endsWith('.json')) {
-                        return this.parseJsonPost(content, filename);
-                    } else {
-                        return this.parseMarkdownPost(content, filename);
-                    }
+                    if (filename.endsWith('.json')) return this.parseJsonPost(content, filename);
+                    return this.parseMarkdownPost(content, filename);
                 } catch (error) {
                     console.error(`Failed to parse ${filename}:`, error);
-                    return null; // Defensive: don't crash on bad post
+                    return null;
                 }
             }
 
             parseJsonPost(content, filename) {
                 try {
                     const post = JSON.parse(content);
-                    return {
-                        title: post.title || 'Untitled',
-                        date: post.date || this.extractDateFromFilename(filename),
-                        content: post.content || '',
-                        filename
-                    };
-                } catch (error) {
-                    console.warn(`Invalid JSON in ${filename}:`, error);
-                    return null;
-                }
+                    return { title: post.title || 'Untitled', date: post.date || this.extractDateFromFilename(filename), content: post.content || '', filename };
+                } catch (error) { return null; }
             }
 
             parseMarkdownPost(content, filename) {
-                // Simple frontmatter parsing
                 const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
                 const match = content.match(frontmatterRegex);
-                
-                let title = 'Untitled';
-                let date = null; // Don't default to filename - frontmatter is source of truth
-                let postContent = content;
+                let title = 'Untitled', date = null, postContent = content;
 
                 if (match) {
                     const frontmatter = match[1];
                     postContent = match[2];
-                    
-                    // Extract title and date from frontmatter
                     const titleMatch = frontmatter.match(/^title:\s*(.+)$/m);
                     const dateMatch = frontmatter.match(/^date:\s*(.+)$/m);
-                    
                     if (titleMatch) title = titleMatch[1].trim().replace(/['"]/g, '');
-                    if (dateMatch) {
-                        // Use the raw date string directly to avoid timezone issues
-                        const rawDate = dateMatch[1].trim();
-                        // If already YYYY-MM-DD format, use as-is
-                        if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
-                            date = rawDate;
-                        } else {
-                            // Try to parse and normalize other formats
-                            const parsedDate = new Date(rawDate + 'T00:00:00');
-                            if (!isNaN(parsedDate.getTime())) {
-                                date = rawDate;
-                            } else {
-                                date = rawDate;
-                            }
-                        }
-                    }
+                    if (dateMatch) date = dateMatch[1].trim();
                 }
-
-                // Only fall back to filename date if frontmatter date is missing
-                if (!date) {
-                    date = this.extractDateFromFilename(filename);
-                }
-
-                return {
-                    title,
-                    date,
-                    content: this.markdownToHtml(postContent),
-                    filename
-                };
+                if (!date) date = this.extractDateFromFilename(filename);
+                return { title, date, content: this.markdownToHtml(postContent), filename };
             }
 
             extractDateFromFilename(filename) {
-                // Try to extract date from filename like "2024-01-15-post-title.md"
                 const dateMatch = filename.match(/^(\d{4}-\d{2}-\d{2})/);
                 return dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0];
             }
 
             parseDate(dateString) {
-                // Safe date parsing that handles YYYY-MM-DD format correctly
-                // Append T00:00:00 to avoid timezone shifting issues
                 if (!dateString) return NaN;
-                const normalized = String(dateString).trim();
-                if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-                    return new Date(normalized + 'T00:00:00').getTime();
-                }
-                return new Date(normalized).getTime();
+                const n = String(dateString).trim();
+                if (/^\d{4}-\d{2}-\d{2}$/.test(n)) return new Date(n + 'T00:00:00').getTime();
+                return new Date(n).getTime();
             }
 
             markdownToHtml(markdown) {
-                // Basic markdown parsing - you could use a library like marked.js for full support
                 return markdown
                     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
                     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
@@ -475,16 +589,12 @@
 
             renderPosts(posts) {
                 this.loadingEl.style.display = 'none';
-                
-                if (posts.length === 0) {
-                    this.showEmptyState();
-                    return;
-                }
+                if (posts.length === 0) { this.showEmptyState(); return; }
 
                 this.postsEl.innerHTML = posts.map(post => {
                     const slug = this.filenameToSlug(post.filename);
                     return `
-                    <article class="post">
+                    <article class="post glass">
                         <div class="post-header">
                             <img src="https://github.com/Syrthax.png" alt="Sarthak" class="author-avatar">
                             <div class="author-info">
@@ -492,14 +602,16 @@
                                 <div class="post-date">${this.formatDate(post.date)}</div>
                             </div>
                         </div>
-                        <a href="post.html?id=${encodeURIComponent(slug)}" class="post-title">${this.escapeHtml(post.title)}</a>
+                        <div class="post-title-row">
+                            <a href="post.html?id=${encodeURIComponent(slug)}" class="post-title">${this.escapeHtml(post.title)}</a>
+                            <button class="share-btn" onclick="copyPostLink('${slug}')" title="Copy link">${SHARE_SVG}</button>
+                        </div>
                         <div class="post-content">${post.content}</div>
                     </article>`;
                 }).join('');
             }
 
             filenameToSlug(filename) {
-                // 2026-01-26-kiosk.md → 260126Kiosk
                 const m = filename.match(/^(\d{4})-(\d{2})-(\d{2})-(.+)\.md$/);
                 if (!m) return filename.replace('.md', '');
                 const yy = m[1].slice(2);
@@ -515,19 +627,12 @@
 
             formatDate(dateString) {
                 try {
-                    const date = new Date(dateString);
-                    return date.toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                } catch (error) {
-                    return dateString;
-                }
+                    const date = new Date(dateString + 'T00:00:00');
+                    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                } catch (error) { return dateString; }
             }
         }
 
-        // Initialize the blog when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             const blog = new BlogLoader();
             blog.init();

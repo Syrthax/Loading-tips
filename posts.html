@@ -8,166 +8,303 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg-color: #f8f9fa;
-            --card-bg: white;
-            --text-color: #333;
-            --heading-color: #2c3e50;
-            --meta-color: #6c757d;
-            --border-color: #e9ecef;
-            --link-color: #3498db;
-            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+            --bg: #f2f2f7;
+            --bg-gradient: linear-gradient(135deg, #e8e0f0 0%, #d4e4f7 30%, #e8f0e4 60%, #f7e8d4 100%);
+            --glass-bg: rgba(255,255,255,0.45);
+            --glass-border: rgba(255,255,255,0.6);
+            --glass-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            --glass-blur: 20px;
+            --text: #1d1d1f;
+            --heading: #000;
+            --meta: #86868b;
+            --accent: #0071e3;
+            --accent-hover: #0077ed;
+            --toast-bg: rgba(0,0,0,0.75);
+            --toast-text: #fff;
         }
 
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-color: #1a1a2e;
-                --card-bg: #16213e;
-                --text-color: #e4e4e4;
-                --heading-color: #f1f1f1;
-                --meta-color: #a0a0a0;
-                --border-color: #2a2a4a;
-                --link-color: #64b5f6;
-                --shadow: 0 2px 8px rgba(0,0,0,0.3);
+                --bg: #000000;
+                --bg-gradient: linear-gradient(135deg, #1a1030 0%, #0a1628 30%, #0a1a10 60%, #1a1408 100%);
+                --glass-bg: rgba(30,30,35,0.55);
+                --glass-border: rgba(255,255,255,0.08);
+                --glass-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                --text: #f5f5f7;
+                --heading: #fff;
+                --meta: #98989d;
+                --accent: #2997ff;
+                --accent-hover: #40a9ff;
+                --toast-bg: rgba(255,255,255,0.85);
+                --toast-text: #000;
             }
         }
 
         html, body { min-height: 100vh; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            color: var(--text-color);
-            background: var(--bg-color);
-            transition: background 0.3s, color 0.3s;
+            color: var(--text);
+            background: var(--bg);
+            background-image: var(--bg-gradient);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            z-index: 0;
+            pointer-events: none;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        body::before {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(0,113,227,0.25), transparent 70%);
+            top: -100px; left: -100px;
+        }
+
+        body::after {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(168,85,247,0.2), transparent 70%);
+            bottom: -50px; right: -50px;
+            animation-delay: -10s;
+            animation-direction: reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(60px, 40px) scale(1.05); }
+            50% { transform: translate(-30px, 80px) scale(0.95); }
+            75% { transform: translate(40px, -20px) scale(1.02); }
         }
 
         .container {
+            position: relative;
+            z-index: 1;
             max-width: 800px;
             margin: 0 auto;
             padding: 2rem 1rem;
         }
 
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: var(--glass-shadow);
+        }
+
         header {
             text-align: center;
-            margin-bottom: 3rem;
-            padding-bottom: 2rem;
-            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 2.5rem;
+            padding: 2.5rem 2rem 2rem;
+            animation: fadeSlideIn 0.8s ease-out;
         }
 
         header h1 {
             font-size: 2.5rem;
-            color: var(--heading-color);
-            margin-bottom: 0.5rem;
+            font-weight: 700;
+            color: var(--heading);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.4rem;
         }
 
-        header h1 a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        header h1 a:hover {
-            color: var(--link-color);
-        }
+        header h1 a { color: inherit; text-decoration: none; }
+        header h1 a:hover { color: var(--accent); }
 
         .subtitle {
-            color: var(--meta-color);
-            font-size: 1.1rem;
+            color: var(--meta);
+            font-size: 1.05rem;
         }
 
         .loading {
             text-align: center;
-            padding: 2rem;
-            color: var(--meta-color);
+            padding: 3rem 1rem;
+            color: var(--meta);
         }
+
+        .spinner {
+            display: inline-block;
+            width: 28px; height: 28px;
+            border: 3px solid var(--glass-border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 0.75rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 1rem;
-            border-radius: 4px;
-            margin-bottom: 2rem;
+            background: rgba(255,59,48,0.12);
+            border: 1px solid rgba(255,59,48,0.2);
+            color: #ff3b30;
+            padding: 1rem 1.5rem;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
         }
 
-        .posts-list {
-            list-style: none;
-        }
+        .posts-list { list-style: none; }
 
         .posts-list li {
-            background: var(--card-bg);
-            border-radius: 12px;
-            margin-bottom: 1rem;
-            box-shadow: var(--shadow);
-            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 0.75rem;
+            transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.4s ease;
+            animation: fadeSlideIn 0.6s ease-out both;
         }
 
+        .posts-list li:nth-child(1) { animation-delay: 0.05s; }
+        .posts-list li:nth-child(2) { animation-delay: 0.1s; }
+        .posts-list li:nth-child(3) { animation-delay: 0.15s; }
+        .posts-list li:nth-child(4) { animation-delay: 0.2s; }
+        .posts-list li:nth-child(5) { animation-delay: 0.25s; }
+        .posts-list li:nth-child(6) { animation-delay: 0.3s; }
+
         .posts-list li:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-3px) scale(1.005);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
         }
 
         .posts-list a {
             display: flex;
             align-items: center;
             gap: 1rem;
-            padding: 1.5rem 2rem;
+            padding: 1.25rem 1.75rem;
             text-decoration: none;
-            color: var(--text-color);
+            color: var(--text);
         }
 
-        .post-info {
-            flex: 1;
-        }
+        .post-info { flex: 1; }
 
         .post-title {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             font-weight: 600;
-            color: var(--heading-color);
-            margin-bottom: 0.25rem;
+            color: var(--heading);
+            margin-bottom: 0.2rem;
         }
 
         .post-date {
-            font-size: 0.85rem;
-            color: var(--meta-color);
+            font-size: 0.8rem;
+            color: var(--meta);
         }
 
         .post-arrow {
-            color: var(--meta-color);
-            font-size: 1.2rem;
-            transition: transform 0.2s;
+            color: var(--meta);
+            font-size: 1.1rem;
+            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), color 0.2s;
         }
 
         .posts-list li:hover .post-arrow {
-            transform: translateX(4px);
-            color: var(--link-color);
+            transform: translateX(5px);
+            color: var(--accent);
+        }
+
+        /* Share button in list */
+        .share-btn-sm {
+            flex-shrink: 0;
+            width: 32px; height: 32px;
+            border: none;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.2s;
+        }
+
+        .share-btn-sm:hover {
+            transform: scale(1.15);
+            background: var(--accent);
+        }
+
+        .share-btn-sm:hover svg { stroke: #fff; }
+        .share-btn-sm:active { transform: scale(0.95); }
+
+        .share-btn-sm svg {
+            width: 14px; height: 14px;
+            stroke: var(--text);
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.2s;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--toast-bg);
+            color: var(--toast-text);
+            padding: 0.6rem 1.4rem;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
 
         .empty-state {
             text-align: center;
             padding: 3rem 1rem;
-            color: var(--meta-color);
+            color: var(--meta);
         }
 
         footer {
             text-align: center;
             margin-top: 3rem;
             padding: 2rem 1rem;
-            border-top: 1px solid var(--border-color);
-            color: var(--meta-color);
-            font-size: 0.9rem;
+            color: var(--meta);
+            font-size: 0.85rem;
         }
 
-        footer p { margin-bottom: 0.5rem; }
-        footer a { color: var(--link-color); }
+        footer p { margin-bottom: 0.4rem; }
+        footer a { color: var(--accent); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            header h1 { font-size: 2rem; }
+            header { padding: 2rem 1.5rem 1.5rem; border-radius: 16px; }
+            .posts-list li { border-radius: 16px; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
+        <header class="glass">
             <h1><a href="index.html">Loading Tips</a></h1>
             <p class="subtitle">All Posts</p>
         </header>
 
-        <div id="loading" class="loading">Loading posts...</div>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading posts&hellip;</p>
+        </div>
         <div id="error" class="error" style="display: none;"></div>
 
         <ul id="posts-list" class="posts-list" style="display: none;"></ul>
@@ -183,12 +320,40 @@
         </footer>
     </div>
 
+    <div id="toast" class="toast">Link copied!</div>
+
     <script>
+        var SHARE_SVG = '<svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
+
+        function showToast(msg) {
+            var t = document.getElementById('toast');
+            t.textContent = msg || 'Link copied!';
+            t.classList.add('show');
+            clearTimeout(t._tid);
+            t._tid = setTimeout(function() { t.classList.remove('show'); }, 2000);
+        }
+
+        function copyPostLink(slug, e) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            var url = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'post.html?id=' + encodeURIComponent(slug);
+            navigator.clipboard.writeText(url).then(function() {
+                showToast('Link copied!');
+            }).catch(function() {
+                var inp = document.createElement('input');
+                inp.value = url;
+                document.body.appendChild(inp);
+                inp.select();
+                document.execCommand('copy');
+                document.body.removeChild(inp);
+                showToast('Link copied!');
+            });
+        }
+
         (function () {
-            const loadingEl  = document.getElementById('loading');
-            const errorEl    = document.getElementById('error');
-            const listEl     = document.getElementById('posts-list');
-            const emptyEl    = document.getElementById('empty-state');
+            var loadingEl = document.getElementById('loading');
+            var errorEl   = document.getElementById('error');
+            var listEl    = document.getElementById('posts-list');
+            var emptyEl   = document.getElementById('empty-state');
 
             function showError(msg) {
                 loadingEl.style.display = 'none';
@@ -198,22 +363,22 @@
 
             function formatDate(dateStr) {
                 try {
-                    const d = new Date(dateStr + 'T00:00:00');
+                    var d = new Date(dateStr + 'T00:00:00');
                     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-                } catch { return dateStr; }
+                } catch (e) { return dateStr; }
             }
 
             function escapeHtml(text) {
-                const el = document.createElement('span');
+                var el = document.createElement('span');
                 el.textContent = text;
                 return el.innerHTML;
             }
 
             async function loadPosts() {
                 try {
-                    const res = await fetch('posts.json');
+                    var res = await fetch('posts.json');
                     if (!res.ok) throw new Error('Could not load posts list.');
-                    const posts = await res.json();
+                    var posts = await res.json();
 
                     loadingEl.style.display = 'none';
 
@@ -223,12 +388,13 @@
                     }
 
                     listEl.innerHTML = posts.map(function (p) {
-                        return '<li>'
+                        return '<li class="glass">'
                             + '<a href="post.html?id=' + encodeURIComponent(p.slug) + '">'
                             + '  <div class="post-info">'
                             + '    <div class="post-title">' + escapeHtml(p.title) + '</div>'
                             + '    <div class="post-date">' + formatDate(p.date) + '</div>'
                             + '  </div>'
+                            + '  <button class="share-btn-sm" onclick="copyPostLink(\'' + p.slug + '\', event)" title="Copy link">' + SHARE_SVG + '</button>'
                             + '  <span class="post-arrow">&rarr;</span>'
                             + '</a>'
                             + '</li>';
